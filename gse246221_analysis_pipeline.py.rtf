@@ -1,0 +1,226 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 """\
+Bioinformatic Re-analysis Pipeline for GSE246221\
+Targeted Analysis of the IL-10 Signaling Axis in a MASLD to HCC Mouse Model.\
+\
+This script performs metadata curation, Log2-CPM normalization, Z-score transformation,\
+and generates publication-ready statistical visualizations (Figures 3 and 4) \
+with exact Tukey HSD post-hoc annotations.\
+"""\
+\
+import os\
+import pandas as pd\
+import numpy as np\
+import seaborn as sns\
+import matplotlib.pyplot as plt\
+import GEOparse\
+from scipy.stats import f_oneway\
+import statsmodels.stats.multicomp as mc\
+import logging\
+\
+# Suppress verbose GEOparse logs for clean terminal output\
+logging.getLogger("GEOparse").setLevel(logging.WARNING)\
+\
+# ==========================================\
+# CONFIGURATION & PARAMETERS\
+# ==========================================\
+COUNTS_FILE = "GSE246221_rawcounts_allsamples_mouse.txt.gz"\
+METADATA_FILE = "SraRunTable.csv"\
+GEO_ACCESSION = "GSE246221"\
+\
+STUDY_ORDER = ['1_Control', '2_Inflammation_8w', '3_MASH_20w', '4_Fibrosis_32w', '5_HCC']\
+CLEAN_LABELS = ['Control', 'Inflammation', 'MASH', 'Fibrosis', 'HCC']\
+GENES_OF_INTEREST = ["Il10", "Il10ra", "Il10rb", "Stat3", "Socs3"]\
+\
+# ==========================================\
+# HELPER FUNCTIONS\
+# ==========================================\
+def format_p_latex(p):\
+    """Formats p-values for scientific notation in plots."""\
+    if p < 0.001:\
+        exponent = int(np.floor(np.log10(p)))\
+        coeff = p / (10**exponent)\
+        return f"\{coeff:.2f\} \\\\times 10^\{\{\{exponent\}\}\}"\
+    return f"\{p:.3f\}"\
+\
+def italic_gene(gene_name):\
+    """Returns LaTeX formatted italic gene names."""\
+    return f"$\\\\mathit\{\{\{gene_name\}\}\}$"\
+\
+def classify_stage(row):\
+    """Classifies samples into predefined disease stages based on clinical metadata."""\
+    age = str(row.get('AGE', '')).lower()\
+    diet = str(row.get('Diet', '')).lower()\
+    tissue = str(row.get('tissue', '')).lower()\
+    tx = str(row.get('streptozotocin_treatment', '')).lower()\
+    \
+    if 'scd' in diet and ('7 weeks' in age or '8 weeks' in age) and 'untreated' in tx: \
+        return '1_Control'\
+    if '8 weeks' in age and 'treated' in tx: \
+        return '2_Inflammation_8w'\
+    if '20 weeks' in age and 'hfd' in diet: \
+        return '3_MASH_20w'\
+    if '32 weeks' in age and 'hfd' in diet: \
+        return '4_Fibrosis_32w'\
+    if 'tumor' in tissue: \
+        return '5_HCC'\
+    return 'Exclude'\
+\
+# ==========================================\
+# MAIN PIPELINE\
+# ==========================================\
+def main():\
+    print("\uc0\u55357 \u57314  Starting GSE246221 Analysis Pipeline...\\n")\
+    \
+    # --- 1. Load Expression Data ---\
+    print(f"[*] Loading raw counts from \{COUNTS_FILE\}...")\
+    df_expr = pd.read_csv(COUNTS_FILE, sep='\\t| ', engine='python', index_col=0)\
+    # Harmonize gene IDs (remove hybrid prefixes if any)\
+    df_expr.index = df_expr.index.map(lambda x: str(x).split('_', 1)[1] if '_' in str(x) else str(x))\
+    df_expr = df_expr.groupby(df_expr.index).mean()\
+\
+    # --- 2. Load and Process Metadata ---\
+    print(f"[*] Curating metadata from \{METADATA_FILE\}...")\
+    meta_df = pd.read_csv(METADATA_FILE)\
+    meta_df['Stage'] = meta_df.apply(classify_stage, axis=1)\
+    meta_clean = meta_df[meta_df['Stage'] != 'Exclude'].copy()\
+    meta_clean.set_index('Sample Name', inplace=True)\
+\
+    # --- 3. Fetch GEO Metadata for Column Mapping ---\
+    print(f"[*] Fetching \{GEO_ACCESSION\} soft file for identifier mapping...")\
+    gse = GEOparse.get_GEO(GEO_ACCESSION, destdir="./")\
+    lab_to_gsm = \{\}\
+    for gsm_id, gsm in gse.gsms.items():\
+        for col in df_expr.columns:\
+            if col in str(gsm.metadata.get('description', '')) or col in str(gsm.metadata.get('title', '')):\
+                lab_to_gsm[col] = gsm_id\
+    \
+    df_expr.rename(columns=lab_to_gsm, inplace=True)\
+    \
+    # --- 4. Filter and Normalize (Log2-CPM) ---\
+    common = list(set(df_expr.columns) & set(meta_clean.index))\
+    print(f"[*] Retained \{len(common)\} biologically independent samples for downstream analysis.")\
+    df_log = np.log2((df_expr[common].div(df_expr[common].sum()) * 1e6) + 1)\
+    idx_map = \{str(x).lower(): x for x in df_log.index\}\
+\
+    # --- 5. Prepare Exact N Labels ---\
+    counts = meta_clean['Stage'].value_counts().sort_index()\
+    n_labels = [f"\{label\}\\n(n=\{counts.iloc[i]\})" for i, label in enumerate(CLEAN_LABELS)]\
+    stage_to_clean = dict(zip(STUDY_ORDER, n_labels))\
+    stage_to_clean_simple = dict(zip(STUDY_ORDER, CLEAN_LABELS)) # For Fig 3\
+\
+    # ==========================================\
+    # FIGURE 3: Z-SCORE DYNAMICS\
+    # ==========================================\
+    print("\\n[*] Generating Figure 3 (Relative Dynamics Z-score)...")\
+    zscore_data = []\
+    for gene in GENES_OF_INTEREST:\
+        real_id = idx_map[gene.lower()]\
+        gene_expr = df_log.loc[real_id]\
+        gene_z = (gene_expr - gene_expr.mean()) / gene_expr.std()\
+        \
+        temp_df = gene_z.to_frame(name='Z_Score').join(meta_clean['Stage'])\
+        temp_df['Gene'] = italic_gene(gene)\
+        zscore_data.append(temp_df)\
+\
+    df_z = pd.concat(zscore_data)\
+    df_z['Clean_Stage'] = df_z['Stage'].map(stage_to_clean_simple)\
+    \
+    summary_df = df_z.groupby(['Gene', 'Stage', 'Clean_Stage'])['Z_Score'].agg(['mean', 'sem']).reset_index()\
+    summary_df = summary_df.sort_values('Stage')\
+\
+    plt.figure(figsize=(10, 6))\
+    palette_z = \{"$\\\\mathit\{Il10\}$": "#2ca02c", "$\\\\mathit\{Il10ra\}$": "#98df8a", \
+                 "$\\\\mathit\{Il10rb\}$": "#17becf", "$\\\\mathit\{Stat3\}$": "#1f77b4", \
+                 "$\\\\mathit\{Socs3\}$": "#d62728"\}\
+    markers_z = \{"$\\\\mathit\{Il10\}$": "o", "$\\\\mathit\{Il10ra\}$": "^", \
+                 "$\\\\mathit\{Il10rb\}$": "v", "$\\\\mathit\{Stat3\}$": "s", \
+                 "$\\\\mathit\{Socs3\}$": "D"\}\
+\
+    for gene in summary_df['Gene'].unique():\
+        subset = summary_df[summary_df['Gene'] == gene]\
+        plt.errorbar(x=subset['Clean_Stage'], y=subset['mean'], yerr=subset['sem'], \
+                     label=gene, marker=markers_z[gene], markersize=8, linewidth=2.5, \
+                     color=palette_z.get(gene, "black"), capsize=5)\
+\
+    plt.axhline(0, color='gray', linestyle='--', linewidth=1)\
+    plt.title("Relative Dynamics of the IL-10 Signaling Axis\\n(MASLD to HCC Progression)", fontweight='bold', fontsize=16)\
+    plt.ylabel("Relative Expression (Z-score)")\
+    plt.xlabel("Disease Stage")\
+    plt.legend(title="Gene", bbox_to_anchor=(1.05, 1), loc='upper left')\
+    plt.grid(axis='y', linestyle='--', alpha=0.6)\
+    plt.tight_layout()\
+    plt.savefig("Figure_3_Dynamics.pdf", bbox_inches='tight')\
+    plt.close()\
+\
+    # ==========================================\
+    # FIGURE 4: EXPRESSION BOXPLOTS WITH POST-HOC\
+    # ==========================================\
+    print("[*] Generating Figure 4 (Statistical Boxplots with Tukey HSD stars)...")\
+    sns.set(style="ticks", context="paper", font_scale=1.4)\
+    fig, axes = plt.subplots(1, len(GENES_OF_INTEREST), figsize=(32, 8)) \
+\
+    for i, gene in enumerate(GENES_OF_INTEREST):\
+        real_id = idx_map[gene.lower()]\
+        data = df_log.loc[real_id].to_frame().join(meta_clean['Stage'])\
+        data.columns = ['Expression', 'Stage']\
+        \
+        p_anova = f_oneway(*[data[data['Stage'] == s]['Expression'] for s in STUDY_ORDER])[1]\
+        data['Clean_Stage'] = data['Stage'].map(stage_to_clean)\
+        \
+        # Base plots\
+        sns.boxplot(x='Clean_Stage', y='Expression', hue='Clean_Stage', data=data, \
+                    ax=axes[i], palette="Set2", showfliers=False, order=n_labels, legend=False)\
+        sns.swarmplot(x='Clean_Stage', y='Expression', data=data, \
+                      ax=axes[i], color=".25", alpha=0.5, order=n_labels)\
+        \
+        # Tukey HSD Post-Hoc & Annotations\
+        if p_anova < 0.05: \
+            comp = mc.MultiComparison(data['Expression'], data['Clean_Stage'])\
+            tukey_res = comp.tukeyhsd(alpha=0.05)\
+            \
+            tukey_df = pd.DataFrame(data=tukey_res.summary().data[1:], columns=tukey_res.summary().data[0])\
+            sig_pairs = tukey_df[tukey_df['reject'] == True]\
+            \
+            y_max = data['Expression'].max()\
+            y_range = data['Expression'].max() - data['Expression'].min()\
+            y_step = y_range * 0.08\
+            current_y = y_max + (y_range * 0.05)\
+            \
+            for _, row in sig_pairs.iterrows():\
+                x1, x2 = n_labels.index(row['group1']), n_labels.index(row['group2'])\
+                if x1 > x2: x1, x2 = x2, x1 # Order left-to-right\
+                \
+                pval = row['p-adj']\
+                stars = "***" if pval < 0.001 else "**" if pval < 0.01 else "*"\
+                \
+                # Draw significance brackets\
+                axes[i].plot([x1, x1, x2, x2], [current_y, current_y+y_step*0.2, current_y+y_step*0.2, current_y], lw=1.5, color='black')\
+                axes[i].text((x1+x2)/2, current_y+y_step*0.2, stars, ha='center', va='bottom', color='black', fontsize=14, fontweight='bold')\
+                \
+                current_y += y_step * 1.3 \
+                    \
+            axes[i].set_ylim(top=current_y + (y_range * 0.1))\
+        \
+        # Formatting\
+        axes[i].set_title(f"Expression of \{italic_gene(gene)\}\\nANOVA $p = \{format_p_latex(p_anova)\}$", fontweight='bold', fontsize=16)\
+        axes[i].set_ylabel("Log2 CPM")\
+        axes[i].set_xlabel("")\
+        axes[i].tick_params(axis='x', rotation=45) \
+\
+    plt.tight_layout()\
+    plt.savefig("Figure_4_Boxplots.pdf", bbox_inches='tight')\
+    plt.close()\
+\
+    print("\\n\uc0\u9989  Execution completed! Outputs saved:")\
+    print("   -> Figure_3_Dynamics.pdf")\
+    print("   -> Figure_4_Boxplots.pdf")\
+\
+if __name__ == "__main__":\
+    main()}
