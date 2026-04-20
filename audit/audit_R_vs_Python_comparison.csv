@@ -1,0 +1,7 @@
+contrast,n_genes_compared,pearson_logFC,spearman_rank,top100_overlap
+EarlyMASLD_vs_Control,20100,1.0,0.9995,95
+MASH_vs_EarlyMASLD,20100,1.0,,100
+Fibrosis_vs_MASH,20100,1.0,0.9994,94
+ChronicNT_vs_Fibrosis,20100,1.0,0.9995,97
+HCC_vs_ChronicNT,20100,1.0,0.9995,93
+HCC_vs_Control,20100,1.0,0.9993,91
