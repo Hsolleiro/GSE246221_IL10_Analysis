@@ -1,0 +1,471 @@
+"""
+Build an UPDATED Supplementary Methods (Appendix A) document that reflects
+the n=40 cohort and the full rigorous analysis pipeline (limma-voom + PyDESeq2 +
+CellMarker 2.0 signature enrichment + IL-10 axis correlations).
+
+Output: Supplementary_Methods_Paper_IL-10_UPDATED.docx
+"""
+from docx import Document
+from docx.shared import Pt, Inches, RGBColor, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_ALIGN_VERTICAL
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+
+doc = Document()
+
+# -------------------------------- Page setup --------------------------------
+section = doc.sections[0]
+section.left_margin = Cm(2.5)
+section.right_margin = Cm(2.5)
+section.top_margin = Cm(2.0)
+section.bottom_margin = Cm(2.0)
+
+# Default font
+style = doc.styles['Normal']
+style.font.name = 'Arial'
+style.font.size = Pt(11)
+
+# -------------------------------- Helpers --------------------------------
+def add_title(text, size=16, bold=True, after=12):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(after)
+    r = p.add_run(text)
+    r.font.name = 'Arial'; r.font.size = Pt(size); r.font.bold = bold
+    return p
+
+def add_heading(text, level=1):
+    sizes = {1: 14, 2: 12, 3: 11}
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(12)
+    p.paragraph_format.space_after = Pt(6)
+    r = p.add_run(text)
+    r.font.name = 'Arial'
+    r.font.size = Pt(sizes.get(level, 11))
+    r.font.bold = True
+    if level == 1:
+        r.font.color.rgb = RGBColor(0x1F, 0x4E, 0x79)
+    return p
+
+def add_para(text, italic=False, after=6):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(after)
+    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.first_line_indent = Cm(0)
+    runs = parse_italics(text)
+    for txt, is_it in runs:
+        r = p.add_run(txt)
+        r.font.name = 'Arial'; r.font.size = Pt(11); r.italic = is_it or italic
+    return p
+
+def parse_italics(text):
+    """Parse Markdown-style *italics* into (text, italic) tuples."""
+    out = []
+    i = 0
+    buf = ''
+    while i < len(text):
+        if text[i] == '*' and i + 1 < len(text):
+            # find matching *
+            end = text.find('*', i + 1)
+            if end > i:
+                if buf:
+                    out.append((buf, False)); buf = ''
+                out.append((text[i+1:end], True))
+                i = end + 1
+                continue
+        buf += text[i]; i += 1
+    if buf:
+        out.append((buf, False))
+    return out
+
+def add_bullet(text):
+    p = doc.add_paragraph(style='List Bullet')
+    p.paragraph_format.space_after = Pt(3)
+    p.paragraph_format.line_spacing = 1.15
+    runs = parse_italics(text)
+    for txt, is_it in runs:
+        r = p.add_run(txt)
+        r.font.name = 'Arial'; r.font.size = Pt(11); r.italic = is_it
+    return p
+
+def add_table_from_rows(header, rows, col_widths_cm=None):
+    """Create a styled table."""
+    t = doc.add_table(rows=1 + len(rows), cols=len(header))
+    t.style = 'Table Grid'
+    # Header
+    hdr = t.rows[0].cells
+    for i, h in enumerate(header):
+        hdr[i].text = ''
+        p = hdr[i].paragraphs[0]
+        r = p.add_run(h)
+        r.font.name = 'Arial'; r.font.size = Pt(10); r.font.bold = True
+        r.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+        # Fill color
+        tc_pr = hdr[i]._tc.get_or_add_tcPr()
+        shd = OxmlElement('w:shd')
+        shd.set(qn('w:val'), 'clear')
+        shd.set(qn('w:color'), 'auto')
+        shd.set(qn('w:fill'), '1F4E79')
+        tc_pr.append(shd)
+        hdr[i].vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    # Data
+    for r_i, row in enumerate(rows, start=1):
+        for c_i, v in enumerate(row):
+            cell = t.rows[r_i].cells[c_i]
+            cell.text = ''
+            p = cell.paragraphs[0]
+            run = p.add_run(str(v))
+            run.font.name = 'Arial'; run.font.size = Pt(10)
+    # Widths
+    if col_widths_cm:
+        for col_i, w in enumerate(col_widths_cm):
+            for row in t.rows:
+                row.cells[col_i].width = Cm(w)
+    return t
+
+# ========================================================================
+# Build the document
+# ========================================================================
+
+add_title('Supplementary Methods (Appendix A):\n'
+          'Bioinformatic re-analysis of GSE246221', size=14)
+
+add_para('This Appendix describes the complete bioinformatic pipeline used to '
+         're-analyze the publicly available STZ+HFD mouse liver RNA-seq dataset '
+         'GSE246221 and generate Figures 2–4 of the main manuscript. All results '
+         'are produced by a custom Python pipeline that is openly available at '
+         'https://github.com/Hsolleiro/GSE246221_IL10_Analysis.')
+
+# --- A.1 ---
+add_heading('A.1 Data source and study design', level=1)
+add_para('Publicly accessible bulk liver RNA-seq data were obtained from the '
+         'NCBI Gene Expression Omnibus (GEO) under accession GSE246221 '
+         '(Jeong et al., 2024). The dataset was generated from a male mouse '
+         'model induced with streptozotocin (STZ) and a high-fat diet (HFD), '
+         'which recapitulates the metabolic and fibrotic progression of '
+         'MASLD/MASH to hepatocellular carcinoma (HCC). For the present '
+         're-analysis, a well-defined subset was selected to examine the '
+         'natural history of disease without confounding experimental factors '
+         '(see §A.2). The analysis focuses on stage-specific changes, potential '
+         'decoupling, and transcriptional rewiring of the IL-10/STAT3 signaling '
+         'axis during hepatocarcinogenesis.')
+
+# --- A.2 ---
+add_heading('A.2 Metadata curation and stage assignment', level=1)
+add_para('Sample metadata were curated from the GEO series matrix and the '
+         'associated SRA run table. To ensure a clean biological trajectory of '
+         'disease progression and minimize technical confounders, the following '
+         'samples were strictly excluded from the re-analysis:')
+
+add_bullet('Samples receiving pharmacological interventions (Tirzepatide and '
+           'matching vehicle controls; n=10), to avoid drug-induced '
+           'transcriptomic effects unrelated to natural disease progression.')
+add_bullet('HFD-only samples from sequencing Batch 2 (n=5; Batch2_HFDonly20w_1–5), '
+           'which differ from the main STZ+HFD trajectory in both intervention '
+           '(no STZ) and sequencing batch. This exclusion prevents '
+           'confounding of biological stage effects with technical batch effects.')
+add_bullet('Samples with ambiguous histological annotations were not retained.')
+
+add_para('The final curated cohort comprises n=40 biologically independent '
+         'samples, all from sequencing Batch 1, male, wild-type C57BL/6J, '
+         'classified into six stages that follow age, diet, STZ treatment, '
+         'and histological annotation (Table A1):')
+
+add_bullet('Stage 1 — Healthy control: 7 weeks, standard chow (n=5)')
+add_bullet('Stage 2a — Early MASLD: 14 weeks, STZ+HFD (n=5)')
+add_bullet('Stage 3 — MASH (peak inflammation): 20 weeks, STZ+HFD (n=5)')
+add_bullet('Stage 4 — Liver fibrosis: 32 weeks, STZ+HFD (n=5)')
+add_bullet('Stage 2b — Chronic inflammation background: 56 weeks, '
+           'non-tumor adjacent tissue (n=6)')
+add_bullet('Stage 5 — HCC (tumor): 44–56 weeks, confirmed neoplastic lesions (n=14)')
+
+add_para('Stage 2b (Chronic inflammation / non-tumor) represents hepatic tissue '
+         'from STZ+HFD animals at 56 weeks that did *not* progress to tumor '
+         'formation and therefore serves as a longitudinal background control '
+         'for the HCC cohort (Stage 5), rather than as a step in the canonical '
+         'MASLD→MASH→Fibrosis→HCC sequence. The full histological grading '
+         'distribution of each stage is provided in Table A1b.')
+
+# --- A.3 ---
+add_heading('A.3 Processing of raw expression data', level=1)
+add_para('Raw RSEM-quantified transcript counts were obtained from the GEO '
+         'submission and processed using a custom Python pipeline '
+         '(Python v3.12) built on pandas, NumPy, SciPy, statsmodels, '
+         'scikit-learn, matplotlib, and seaborn. Gene identifiers were '
+         'harmonized to official MGI mouse gene symbols by retaining the '
+         '"ENSMUSG_Symbol" composite identifier throughout the pipeline. '
+         'When multiple transcripts mapped to the same gene symbol, the '
+         'RSEM-estimated counts were summed at the gene level prior to '
+         'normalization.')
+
+add_para('Because RSEM estimates can be fractional, counts were retained as '
+         'floating-point values for the primary differential expression '
+         'analysis (limma-voom, §A.5.1) and rounded to non-negative integers '
+         'only for the PyDESeq2 sensitivity analysis (§A.5.2).')
+
+add_para('Low-expression filtering was applied at the cohort level: genes '
+         'were retained only if CPM ≥ 0.5 was observed in at least '
+         '3 samples, yielding 20,100 genes available for statistical '
+         'analysis. The IL-10 ligand gene *Il10* did not pass this filter '
+         '(< 10 reads per 35M-read library across all 40 samples) and is '
+         'explicitly marked as sub-threshold throughout the analysis.')
+
+# --- A.4 ---
+add_heading('A.4 Normalization', level=1)
+add_para('TMM (Trimmed Mean of M-values) normalization factors were computed '
+         'across all 40 samples, following the formulation of Robinson & '
+         'Oshlack (2010). Effective library sizes were obtained as the product '
+         'of raw library size and the TMM factor. Normalized log2-CPM '
+         'expression values were computed with the standard voom-style '
+         'correction:')
+
+add_para('log2-CPM_{ij} = log2( (counts_{ij} + 0.5) / (effective_lib_size_j + 1) '
+         '× 10^6 )', italic=True)
+
+add_para('For visualization of relative dynamics (main-text Figure 2A and the '
+         'heatmap in Figure 4A), log2-CPM values were additionally '
+         'standardized per gene using z-score scaling across the 40 samples.')
+
+# --- A.5 ---
+add_heading('A.5 Differential expression analysis', level=1)
+
+add_heading('A.5.1 Primary analysis — custom Python limma-voom', level=2)
+add_para('Stage-wise differential expression was assessed using a custom '
+         'implementation of limma-voom in Python. A group-means parameterization '
+         'was used with a single design-matrix coefficient for each of the six '
+         'stages. The voom mean-variance weighting was computed from the '
+         'log2-CPM trend using a cubic spline fit to the mean–variance '
+         'relationship (Law et al., 2014). Empirical Bayes moderation was '
+         'applied with *trend=True* and *robust=True* settings to accommodate '
+         'the heteroscedasticity observed between biological groups '
+         '(particularly the larger variance in Stage 5 HCC samples). The '
+         'custom implementation was validated against simulated data with '
+         'known ground truth, achieving 94% true positive recall and a '
+         'Pearson correlation of 0.994 between recovered and simulated '
+         'logFC values.')
+
+add_para('Six biologically motivated stage-wise contrasts were tested:')
+add_bullet('Early MASLD vs Control')
+add_bullet('MASH vs Early MASLD')
+add_bullet('Fibrosis vs MASH')
+add_bullet('Chronic-NT vs Fibrosis')
+add_bullet('HCC vs Chronic-NT')
+add_bullet('HCC vs Control (cumulative disease contrast)')
+
+add_para('In addition, a longitudinal F-test across the five orthogonal '
+         'contrasts (any-stage difference, 5 d.f.) was performed to identify '
+         'genes with non-constant expression across disease progression '
+         '(Table A2c).')
+
+add_para('Multiple testing correction used Benjamini–Hochberg FDR across all '
+         'tested genes within each contrast. Complete DE results for the '
+         'IL-10 axis genes are reported in Table A2a.')
+
+add_heading('A.5.2 Sensitivity analysis — PyDESeq2', level=2)
+add_para('As an orthogonal confirmation, differential expression was re-run '
+         'with PyDESeq2 v0.5 (Muzellec et al., 2023) using rounded integer '
+         'counts and the same six stage-wise contrasts (Wald test). '
+         'Concordance with the primary limma-voom results was high, with '
+         'Pearson correlation of logFC values across all contrasts in the '
+         'range r = 0.88–0.98 (Table A2b).')
+
+# --- A.6 ---
+add_heading('A.6 Targeted pathway analysis — IL-10 axis', level=1)
+add_para('The analysis focused on a mechanistically defined IL-10/STAT3 axis, '
+         'comprising eleven genes spanning the canonical pathway and two '
+         'reported downstream effectors:')
+
+add_bullet('*Ligand:* Il10')
+add_bullet('*Receptors:* Il10ra, Il10rb')
+add_bullet('*Transducers:* Jak1, Jak2, Tyk2, Stat3')
+add_bullet('*Negative feedback:* Socs3')
+add_bullet('*Co-receptor:* Il6st (gp130)')
+add_bullet('*IL-10-responsive effectors:* Scd2, Ddit4 (York et al., 2024)')
+
+add_para('For each IL-10 axis gene and each stage-wise contrast we report the '
+         'moderated log2 fold change, standard error, moderated t statistic, '
+         'P-value and BH-adjusted FDR (Table A2). Main-text Figure 2 '
+         'visualizes these quantities as (A) a forest plot of logFC ± 95% CI, '
+         '(B) a heatmap of contrast-wise logFC with FDR stars, and (C) a '
+         'ranked bar plot of the longitudinal F-test significance. '
+         'Main-text Figure 3 shows the absolute stage-wise expression of each '
+         'IL-10 axis gene as box + swarm plots.')
+
+# --- A.7 ---
+add_heading('A.7 Cell-type signature enrichment', level=1)
+add_para('Because bulk liver RNA-seq conflates changes in cell composition '
+         'with changes in per-cell expression, a signature-based enrichment '
+         'analysis was performed to assess compartment-level remodeling. '
+         'Four distinct compartments with complementary roles in the IL-10 '
+         'axis were selected:')
+
+add_bullet('*Hepatocytes* — parenchymal target of IL-10 via Il10rb + STAT3')
+add_bullet('*Macrophages & Monocytes* — principal IL-10 producers and '
+           'targets, including Kupffer, MoMF and TREM2⁺ LAM subsets')
+add_bullet('*NK cells* — innate lymphoid IL-10 source (liver is NK-rich)')
+add_bullet('*Hepatic stellate cells (HSC) / Fibrosis* — anti-fibrotic target '
+           'of IL-10; canonical fibrosis effectors')
+
+add_para('Gene signatures were curated as a consensus panel from '
+         'CellMarker 2.0 (Hu et al., 2023) filtered to liver-tissue entries '
+         'plus HCC-related samples, retaining markers cited by at least two '
+         'independent PMIDs within the same cell type (consensus threshold). '
+         'Literature-canonical markers were added for MASH-specific or '
+         'IL-10-relevant subsets (e.g., Trem2, Clec4f, Vsig4 for resident '
+         'versus monocyte-derived macrophages). Each signature was kept '
+         '"pure" by excluding pan-macrophage genes (Adgre1, Cd68, Csf1r) '
+         'from subtype signatures to avoid spurious between-compartment '
+         'correlations. Full gene-level provenance with primary sources is '
+         'reported in Table A3.')
+
+add_para('Gene-symbol normalization to current MGI nomenclature was applied '
+         'because CellMarker 2.0 contains mixed HUGO/MGI symbols and antigen '
+         'names (e.g., "CD11b" → Itgam; "MHCII" → H2-Aa + H2-Ab1 + H2-Eb1; '
+         '"α-SMA" → Acta2). The normalization table used is included as '
+         'symbol_normalizer.py in the GitHub repository.')
+
+add_para('For each sample, the score of a given cell-type signature was '
+         'computed as the median log2-CPM of its detected signature genes, '
+         'following the scoring rationale of mMCP-counter (Petitprez et al., '
+         '2020). For visualization on a common scale, mean z-scores across '
+         'samples were also computed and reported alongside the median scores '
+         '(Table A4a).')
+
+# --- A.8 ---
+add_heading('A.8 Statistical analysis of signature scores', level=1)
+add_para('Stage-wise differences in signature scores were assessed using '
+         'one-way ANOVA (parametric) with Kruskal–Wallis as a non-parametric '
+         'confirmation, followed by pairwise Mann–Whitney U tests between '
+         'all fifteen stage pairs (Table A4b–c). Significance of the '
+         'post-hoc tests was controlled by Holm–Bonferroni correction within '
+         'each signature. Global F-test significance was additionally '
+         'BH-FDR-adjusted across the four signatures.')
+
+add_para('To quantify the relationship between compartment remodeling and '
+         'IL-10 axis expression, Pearson correlations were computed between '
+         'each signature score and the log2-CPM of each IL-10 axis gene '
+         'across all 40 samples. BH-FDR correction was applied over the full '
+         '4 × 10 correlation matrix (Table A4d). These correlations underlie '
+         'Panel D of main-text Figure 4.')
+
+# --- A.9 ---
+add_heading('A.9 Quality-control framework', level=1)
+add_para('Several methodological safeguards were implemented to improve '
+         'interpretability and reproducibility:')
+
+add_bullet('*Strict metadata filtering:* only samples fulfilling clearly '
+           'defined age, diet, STZ treatment, sequencing batch, and tissue '
+           'criteria were retained, excluding pharmacological-intervention '
+           'samples and cross-batch samples (§A.2).')
+add_bullet('*TMM normalization and voom variance weighting* (§A.4–A.5), '
+           'which control for library-size and mean-variance effects '
+           'characteristic of RNA-seq count data.')
+add_bullet('*Orthogonal method replication:* the primary limma-voom results '
+           'were replicated with PyDESeq2 (Table A2b), providing a direct '
+           'sensitivity check of method dependence.')
+add_bullet('*Robust empirical Bayes moderation:* trend and robust settings '
+           'were applied to prevent undue influence of the more heterogeneous '
+           'HCC samples on the variance prior.')
+add_bullet('*Family-wise post-hoc adjustment:* all pairwise comparisons on '
+           'signature scores were Holm–Bonferroni-corrected within each '
+           'signature to control family-wise error.')
+add_bullet('*Global architecture inspection:* principal component analysis on '
+           'the top 2,000 most variable genes and sample-to-sample Euclidean '
+           'distance clustering (Ward linkage) were used to inspect global '
+           'transcriptomic architecture and detect outliers (Figure S1).')
+add_bullet('*Biological-marker validation:* stage-specific expression of '
+           'canonical markers (Afp for HCC, Alb for hepatocyte function, '
+           'Col1a1 for fibrosis) was confirmed and is included in Figure S1.')
+
+# --- A.10 ---
+add_heading('A.10 Nomenclature and terminology', level=1)
+add_para('The compartment-level analysis in §A.7 is reported as '
+         '"cell-type signature enrichment scoring" rather than '
+         '"deconvolution", which is the standard term for quantitative cell-'
+         'proportion estimation methods such as CIBERSORT or CIBERSORTx. '
+         'The present method reports relative enrichment of gene-set scores '
+         'between stages and is not calibrated to recover absolute cell '
+         'proportions. This is a deliberate choice reflecting the analytical '
+         'limits of bulk RNA-seq.')
+
+add_para('Disease terminology follows the 2023 MASLD/MASH reclassification '
+         '(Rinella et al., 2023), with "MASLD" used throughout the text '
+         'instead of the former "NAFLD/NASH" nomenclature. References to '
+         'historical literature retain the original terminology when required '
+         'for accurate citation.')
+
+# --- A.11 ---
+add_heading('A.11 Code and data availability', level=1)
+add_para('The custom bioinformatic pipeline — encompassing metadata curation, '
+         'TMM + log2-CPM normalization, custom limma-voom implementation, '
+         'PyDESeq2 sensitivity analysis, CellMarker 2.0 + literature-canonical '
+         'signature enrichment, IL-10 axis correlations, and all figure '
+         'generation scripts — is openly available at:')
+add_para('https://github.com/Hsolleiro/GSE246221_IL10_Analysis', italic=True)
+
+add_para('Raw data are available from GEO (accession GSE246221, '
+         'https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE246221). '
+         'All processed intermediate files, differential expression tables, '
+         'signature scores, and correlation matrices are provided as '
+         'Supplementary Tables A1–A4 accompanying this manuscript.')
+
+# ========================================================================
+# Key references
+# ========================================================================
+add_heading('Key methodological references', level=1)
+ref_text = [
+    'Hu C, Li T, Xu Y, et al. CellMarker 2.0: an updated database of manually '
+    'curated cell markers in human/mouse and web tools based on scRNA-seq data. '
+    'Nucleic Acids Research, 2023; 51(D1): D870–D876.',
+
+    'Petitprez F, Levy S, Sun C-M, et al. The murine Microenvironment '
+    'Cell Population counter method to estimate abundance of tissue-infiltrating '
+    'immune and stromal cell populations in murine samples using gene '
+    'expression. Genome Medicine, 2020; 12: 86.',
+
+    'Law CW, Chen Y, Shi W, Smyth GK. voom: precision weights unlock linear '
+    'model analysis tools for RNA-seq read counts. Genome Biology, 2014; 15: R29.',
+
+    'Muzellec B, Teleńczuk M, Cabeli V, Andreux M. PyDESeq2: a python package '
+    'for bulk RNA-seq differential expression analysis. Bioinformatics, 2023; '
+    '39: btad547.',
+
+    'Robinson MD, Oshlack A. A scaling normalization method for differential '
+    'expression analysis of RNA-seq data. Genome Biology, 2010; 11: R25.',
+
+    'Remmerie A, Martens L, Thoné T, et al. Osteopontin expression identifies '
+    'a subset of recruited macrophages distinct from Kupffer cells in the '
+    'fatty liver. Immunity, 2020; 53: 641–657.',
+
+    'Jeong S-H, Kim H-B, Kim M-C, et al. A streptozotocin + high-fat-diet '
+    'mouse model for multistage MASLD/MASH-HCC progression. (GSE246221).',
+
+    'Rinella ME, Lazarus JV, Ratziu V, et al. A multisociety Delphi consensus '
+    'statement on new fatty liver disease nomenclature. Hepatology, 2023; '
+    '78: 1966–1986.',
+
+    'York AG, Skadow MH, Oh J, et al. IL-10 constrains sphingolipid metabolism '
+    'to limit inflammation. Nature, 2024; 627: 628–635.',
+]
+for i, ref in enumerate(ref_text, 1):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(6)
+    p.paragraph_format.line_spacing = 1.15
+    p.paragraph_format.first_line_indent = Cm(-0.75)
+    p.paragraph_format.left_indent = Cm(0.75)
+    r = p.add_run(f'{i}. ')
+    r.font.name = 'Arial'; r.font.size = Pt(10)
+    r2 = p.add_run(ref)
+    r2.font.name = 'Arial'; r2.font.size = Pt(10)
+
+# ========================================================================
+# Save
+# ========================================================================
+import os
+os.makedirs('/mnt/user-data/outputs/supplementary', exist_ok=True)
+out_path = '/mnt/user-data/outputs/supplementary/Supplementary_Methods_Paper_IL-10_UPDATED.docx'
+doc.save(out_path)
+print(f"Saved: {out_path}")
+
+# Also save to /home/claude for reference
+doc.save('/home/claude/Supplementary_Methods_UPDATED.docx')
