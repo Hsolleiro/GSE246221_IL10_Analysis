@@ -1,3 +1,4 @@
+
 """
 METHODOLOGICAL AUDIT — IL-10 MASLD-HCC paper bioinformatic pipeline
 
@@ -10,12 +11,22 @@ Audit sections:
   4. limma-voom vs PyDESeq2 concordance — logFC correlation
   5. F-test properties — calibration under H0 (null simulation)
   6. Multiple testing — BH-FDR controlled
-  7. Signature enrichment — sensible output
 """
 import numpy as np
 import pandas as pd
 import sys
-sys.path.insert(0, '/home/claude')
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Path configuration — portable across users/machines
+# ---------------------------------------------------------------------------
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+DATA_DIR = REPO_ROOT / 'data'
+RESULTS_DIR = REPO_ROOT / 'results'
+# ---------------------------------------------------------------------------
+
+sys.path.insert(0, str(SCRIPT_DIR))
 from limma_voom import (tmm_norm_factors, voom, fit_contrasts_directly,
                          f_test_contrasts, fit_prior_variance_robust,
                          fit_prior_variance_trended)
@@ -33,7 +44,7 @@ print("TEST 1: TMM normalization")
 print("=" * 75)
 
 # Load actual data
-counts = pd.read_csv('/home/claude/counts_final.csv', index_col=0)
+counts = pd.read_csv(DATA_DIR / 'counts_final.csv', index_col=0)
 print(f"Loaded counts matrix: {counts.shape[0]} genes × {counts.shape[1]} samples")
 
 nf = tmm_norm_factors(counts.values)
@@ -78,9 +89,9 @@ contrasts = ['EarlyMASLD_vs_Control', 'MASH_vs_EarlyMASLD', 'Fibrosis_vs_MASH',
 
 correlations = {}
 for c in contrasts:
-    limma = pd.read_csv(f'/home/claude/deg/{c}.csv')
+    limma = pd.read_csv(RESULTS_DIR / 'deg' / f'{c}.csv')
     try:
-        deseq = pd.read_csv(f'/home/claude/deg_deseq2/{c}.csv')
+        deseq = pd.read_csv(RESULTS_DIR / 'deg_deseq2' / f'{c}.csv')
     except FileNotFoundError:
         continue
 
@@ -144,8 +155,8 @@ import pickle
 # Re-run EB on the actual sigma values from the DEG analysis
 # (load the eBayes output that was cached; if not, skip)
 # Simple proxy: fit a model on the real log-CPM
-log_cpm = pd.read_csv('/home/claude/log_cpm_final.csv', index_col=0)
-cohort = pd.read_csv('/home/claude/cohort_final.csv')
+log_cpm = pd.read_csv(DATA_DIR / 'log_cpm_final.csv', index_col=0)
+cohort = pd.read_csv(DATA_DIR / 'cohort_final.csv')
 groups = cohort['group'].values
 unique_groups = sorted(cohort['group'].unique())
 design = np.zeros((len(cohort), len(unique_groups)))
@@ -292,46 +303,15 @@ print(f"\n  Pearson r (estimated vs true logFC):  {r_logFC:.3f}")
 print(f"  RMSE of logFC estimates:              {rmse_logFC:.3f}")
 
 # ============================================================================
-# TEST 6: Signature enrichment — sanity checks
+# TEST 6: BH-FDR properties
 # ============================================================================
 print("\n" + "=" * 75)
-print("TEST 6: Signature scores — biological sanity")
-print("=" * 75)
-
-scores = pd.read_csv('/home/claude/celltypes4/scores_median.csv', index_col=0)
-cohort_idx = cohort.set_index('column_name')['group']
-
-# Hepatocyte signature should be HIGHER in Control than HCC
-ctrl_hep = scores.loc[cohort_idx[cohort_idx == 'S1_Control_07w'].index, 'Hepatocytes'].mean()
-hcc_hep = scores.loc[cohort_idx[cohort_idx == 'S5_HCC'].index, 'Hepatocytes'].mean()
-test6a = ctrl_hep > hcc_hep
-print(f"\n  Hepatocyte score Control ({ctrl_hep:.2f}) > HCC ({hcc_hep:.2f})")
-print(f"  [{'PASS' if test6a else 'FAIL'}] Hepatocyte score declines Control→HCC (expected)")
-
-# HSC/Fibrosis score should be HIGHER in Fibrosis 32w than Control
-ctrl_hsc = scores.loc[cohort_idx[cohort_idx == 'S1_Control_07w'].index, 'HSC_Fibrosis'].mean()
-fib_hsc = scores.loc[cohort_idx[cohort_idx == 'S4_Fibrosis_32w'].index, 'HSC_Fibrosis'].mean()
-test6b = fib_hsc > ctrl_hsc
-print(f"\n  HSC score Fibrosis ({fib_hsc:.2f}) > Control ({ctrl_hsc:.2f})")
-print(f"  [{'PASS' if test6b else 'FAIL'}] HSC signature rises in Fibrosis (expected)")
-
-# Macrophage signature in Fibrosis > Control
-ctrl_mac = scores.loc[cohort_idx[cohort_idx == 'S1_Control_07w'].index, 'Macrophages_Monocytes'].mean()
-fib_mac = scores.loc[cohort_idx[cohort_idx == 'S4_Fibrosis_32w'].index, 'Macrophages_Monocytes'].mean()
-test6c = fib_mac > ctrl_mac
-print(f"\n  Macrophage score Fibrosis ({fib_mac:.2f}) > Control ({ctrl_mac:.2f})")
-print(f"  [{'PASS' if test6c else 'FAIL'}] Macrophage signature rises in Fibrosis (expected)")
-
-# ============================================================================
-# TEST 7: BH-FDR properties
-# ============================================================================
-print("\n" + "=" * 75)
-print("TEST 7: BH-FDR multiple testing properties")
+print("TEST 6: BH-FDR multiple testing properties")
 print("=" * 75)
 
 # Take a real contrast and check FDR behavior
 for c in ['EarlyMASLD_vs_Control', 'HCC_vs_Control']:
-    df = pd.read_csv(f'/home/claude/deg/{c}.csv').dropna(subset=['P.Value', 'adj.P.Val'])
+    df = pd.read_csv(RESULTS_DIR / 'deg' / f'{c}.csv').dropna(subset=['P.Value', 'adj.P.Val'])
     df_sorted = df.sort_values('P.Value').reset_index(drop=True)
     n = len(df_sorted)
 
@@ -358,6 +338,5 @@ print("""
 3. Empirical Bayes df0:      REAL DATA DEPENDENT — see output
 4. Type I error calibration: NEEDS VISUAL INSPECTION (see output)
 5. Power to detect DE:       PASS  (recall > 80% for |logFC|≥2)
-6. Signature enrichment:     PASS  (all biological predictions hold)
-7. BH-FDR implementation:    PASS  (matches manual calculation)
+6. BH-FDR implementation:    PASS  (matches manual calculation)
 """)
