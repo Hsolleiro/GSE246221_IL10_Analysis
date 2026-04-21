@@ -242,6 +242,17 @@ print(f"  [{'PASS' if test4a else 'WARN'}] Calibration acceptable "
 
 # ============================================================================
 # TEST 5: Recovery of known signal
+# CAVEAT: This test uses synthetic spike-in (multiplying counts by 2^logFC)
+# which produces unrealistically "clean" data compared to real biological
+# signal. The recall reported here likely OVERESTIMATES statistical power
+# in real conditions. This test detects catastrophic pipeline failures
+# (a bug that collapsed power to trivial levels would fail it), but should
+# not be interpreted as a precise measurement of real-world power.
+#
+# Also note: the "background positive rate" is NOT an FPR — it reflects
+# genuine biological variation between Control and HCC that happens not to
+# be spiked. The most rigorous power validation is the R vs Python
+# comparison (r=1.000) available in the Colab audit notebook.
 # ============================================================================
 print("\n" + "=" * 75)
 print("TEST 5: Power — recovery of planted DE genes")
