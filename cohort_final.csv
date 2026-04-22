@@ -1,0 +1,41 @@
+column_name,batch,title_key,GSM,Title,age,diet,STZ,drug,tissue,sex,genotype,strain,group
+Batch1_Control07w_1,Batch1,Control07w_1,GSM7865084,"Healthy control,7w, biological replication 1",7 weeks,SCD,Untreated,Untreated,Liver,Male,WT,C57BL/6J,S1_Control_07w
+Batch1_Control07w_2,Batch1,Control07w_2,GSM7865085,"Healthy control,7w, biological replication 2",7 weeks,SCD,Untreated,Untreated,Liver,Male,WT,C57BL/6J,S1_Control_07w
+Batch1_Control07w_3,Batch1,Control07w_3,GSM7865086,"Healthy control,7w, biological replication 3",7 weeks,SCD,Untreated,Untreated,Liver,Male,WT,C57BL/6J,S1_Control_07w
+Batch1_Control07w_4,Batch1,Control07w_4,GSM7865087,"Healthy control,7w, biological replication 4",7 weeks,SCD,Untreated,Untreated,Liver,Male,WT,C57BL/6J,S1_Control_07w
+Batch1_Control07w_5,Batch1,Control07w_5,GSM7865088,"Healthy control,7w, biological replication 5",7 weeks,SCD,Untreated,Untreated,Liver,Male,WT,C57BL/6J,S1_Control_07w
+Batch1_STZHFD14w_1,Batch1,STZHFD14w_1,GSM7865092,"STZ+HFD model, 14w, biological replication 1",14 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2a_EarlyMASLD_14w
+Batch1_STZHFD14w_2,Batch1,STZHFD14w_2,GSM7865093,"STZ+HFD model, 14w, biological replication 2",14 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2a_EarlyMASLD_14w
+Batch1_STZHFD14w_3,Batch1,STZHFD14w_3,GSM7865094,"STZ+HFD model, 14w, biological replication 3",14 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2a_EarlyMASLD_14w
+Batch1_STZHFD14w_4,Batch1,STZHFD14w_4,GSM7865095,"STZ+HFD model, 14w, biological replication 4",14 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2a_EarlyMASLD_14w
+Batch1_STZHFD14w_5,Batch1,STZHFD14w_5,GSM7865096,"STZ+HFD model, 14w, biological replication 5",14 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2a_EarlyMASLD_14w
+Batch1_STZHFD20w_1,Batch1,STZHFD20w_1,GSM7865097,"STZ+HFD model, 20w, biological replication 1",20 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S3_MASH_20w
+Batch1_STZHFD20w_2,Batch1,STZHFD20w_2,GSM7865098,"STZ+HFD model, 20w, biological replication 2",20 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S3_MASH_20w
+Batch1_STZHFD20w_3,Batch1,STZHFD20w_3,GSM7865099,"STZ+HFD model, 20w, biological replication 3",20 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S3_MASH_20w
+Batch1_STZHFD20w_4,Batch1,STZHFD20w_4,GSM7865100,"STZ+HFD model, 20w, biological replication 4",20 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S3_MASH_20w
+Batch1_STZHFD20w_5,Batch1,STZHFD20w_5,GSM7865101,"STZ+HFD model, 20w, biological replication 5",20 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S3_MASH_20w
+Batch1_STZHFD32w_1,Batch1,STZHFD32w_1,GSM7865102,"STZ+HFD model, 32w, biological replication 1",32 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S4_Fibrosis_32w
+Batch1_STZHFD32w_2,Batch1,STZHFD32w_2,GSM7865103,"STZ+HFD model, 32w, biological replication 2",32 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S4_Fibrosis_32w
+Batch1_STZHFD32w_3,Batch1,STZHFD32w_3,GSM7865104,"STZ+HFD model, 32w, biological replication 3",32 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S4_Fibrosis_32w
+Batch1_STZHFD32w_4,Batch1,STZHFD32w_4,GSM7865105,"STZ+HFD model, 32w, biological replication 4",32 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S4_Fibrosis_32w
+Batch1_STZHFD32w_5,Batch1,STZHFD32w_5,GSM7865106,"STZ+HFD model, 32w, biological replication 5",32 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S4_Fibrosis_32w
+Batch1_STZHFD56w_1,Batch1,STZHFD56w_1,GSM7865116,"STZ+HFD model, 56w, biological replication 1",56 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2b_ChronicNT_56w
+Batch1_STZHFD56w_2,Batch1,STZHFD56w_2,GSM7865117,"STZ+HFD model, 56w, biological replication 2",56 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2b_ChronicNT_56w
+Batch1_STZHFD56w_3,Batch1,STZHFD56w_3,GSM7865118,"STZ+HFD model, 56w, biological replication 3",56 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2b_ChronicNT_56w
+Batch1_STZHFD56w_4,Batch1,STZHFD56w_4,GSM7865119,"STZ+HFD model, 56w, biological replication 4",56 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2b_ChronicNT_56w
+Batch1_STZHFD56w_5,Batch1,STZHFD56w_5,GSM7865120,"STZ+HFD model, 56w, biological replication 5",56 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2b_ChronicNT_56w
+Batch1_STZHFD56w_6,Batch1,STZHFD56w_6,GSM7865121,"STZ+HFD model, 56w, biological replication 6",56 weeks,HFD,Treated,Untreated,Liver,Male,WT,C57BL/6J,S2b_ChronicNT_56w
+Batch1_STZHFD44w_T03,Batch1,STZHFD44w_T03,GSM7865122,"STZ+HFD model, 44w, hepatic tumor ID 03",44 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD44w_T04,Batch1,STZHFD44w_T04,GSM7865123,"STZ+HFD model, 44w, hepatic tumor ID 04",44 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD44w_T05,Batch1,STZHFD44w_T05,GSM7865124,"STZ+HFD model, 44w, hepatic tumor ID 05",44 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD44w_T06,Batch1,STZHFD44w_T06,GSM7865125,"STZ+HFD model, 44w, hepatic tumor ID 06",44 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD50w_T07,Batch1,STZHFD50w_T07,GSM7865126,"STZ+HFD model, 50w, hepatic tumor ID 07",50 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD50w_T09,Batch1,STZHFD50w_T09,GSM7865127,"STZ+HFD model, 50w, hepatic tumor ID 09",50 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD50w_T10,Batch1,STZHFD50w_T10,GSM7865128,"STZ+HFD model, 50w, hepatic tumor ID 10",50 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD50w_T11,Batch1,STZHFD50w_T11,GSM7865129,"STZ+HFD model, 50w, hepatic tumor ID 11",50 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD56w_T13,Batch1,STZHFD56w_T13,GSM7865130,"STZ+HFD model, 56w, hepatic tumor ID 13",56 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD56w_T14,Batch1,STZHFD56w_T14,GSM7865131,"STZ+HFD model, 56w, hepatic tumor ID 14",56 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD56w_T18,Batch1,STZHFD56w_T18,GSM7865132,"STZ+HFD model, 56w, hepatic tumor ID 18",56 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD56w_T22,Batch1,STZHFD56w_T22,GSM7865133,"STZ+HFD model, 56w, hepatic tumor ID 22",56 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD56w_T24,Batch1,STZHFD56w_T24,GSM7865134,"STZ+HFD model, 56w, hepatic tumor ID 24",56 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
+Batch1_STZHFD56w_T25,Batch1,STZHFD56w_T25,GSM7865135,"STZ+HFD model, 56w, hepatic tumor ID 25",56 weeks,HFD,Treated,Untreated,Liver (tumor),Male,WT,C57BL/6J,S5_HCC
